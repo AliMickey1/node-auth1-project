@@ -1,6 +1,8 @@
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
+const session = require('express-session')
+const KnexSessionStore = require('connect-session-knex')(session)
 
 /**
   Do what needs to be done to support sessions with the `express-session` package!
@@ -15,11 +17,43 @@ const cors = require("cors");
   or you can use a session store like `connect-session-knex`.
  */
 
+
+const authRouter = require('./auth/auth-router')
+const userRouter = require('./users/users-router')
+
 const server = express();
+
 
 server.use(helmet());
 server.use(express.json());
 server.use(cors());
+
+server.use(session({
+  name: 'chocolatechip',
+  secret: 'Bloomtech',
+  saveUninitialized: false,
+  resave: false,
+  store: new KnexSessionStore({
+    knex: require('../data/db-config'),
+    tablename: 'sessions',
+    sidfieldname: 'session_id',
+    createtable: true,
+    clearInterval: 1000 * 10 * 60,
+  }),
+  cookie: {
+    maxAge: 1000 * 60 * 10,
+    secure: false,
+    httpOnly: true,
+  },
+
+
+
+
+}))
+
+
+server.use('/api/auth', authRouter)
+server.use('/api/users', userRouter)
 
 server.get("/", (req, res) => {
   res.json({ api: "up" });
